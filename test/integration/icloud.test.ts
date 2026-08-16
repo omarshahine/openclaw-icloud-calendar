@@ -52,4 +52,21 @@ describe.skipIf(!enabled)("live iCloud", () => {
     expect(del.deleted).toBe(true);
     uid = undefined;
   });
+
+  it("creates and deletes an all-day recurring event", async () => {
+    const day = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+    const created = await handleCreate(ctx, { title: "[openclaw-test] all-day weekly", start: day, calendar, recurrence: { frequency: "WEEKLY", count: 3 } });
+    uid = created.event.uid;
+    expect(created.event.allDay).toBe(true);
+    expect(created.event.start).toBe(day);
+    expect(created.event.recurrence).toEqual({ frequency: "WEEKLY", count: 3 });
+    const listed = await handleEvents(ctx, { from: day, to: day, calendar });
+    const mine = listed.events.find((e) => e.uid === uid);
+    expect(mine?.nextOccurrences).toEqual([day]);
+    const upd = await handleUpdate(ctx, { uid, calendar, clearRecurrence: true, alarms: [60] });
+    expect(upd.event.recurrence).toBeUndefined();
+    expect(upd.event.alarms).toEqual([60]);
+    await handleDelete(ctx, { uid, calendar });
+    uid = undefined;
+  });
 });

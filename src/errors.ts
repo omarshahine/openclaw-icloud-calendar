@@ -22,6 +22,7 @@ export function invalidInput(message: string): CalDavError {
   return new CalDavError("invalid_input", message);
 }
 
+/** Logical not-found (no HTTP status): does not trigger discovery refresh. */
 export function notFound(message: string): CalDavError {
-  return new CalDavError("not_found", message, 404);
+  return new CalDavError("not_found", message);
 }

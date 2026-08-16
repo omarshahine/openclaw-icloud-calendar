@@ -126,7 +126,8 @@ export async function handleEvents(ctx: Context, params: EventsParams) {
 }
 
 function sortKey(ev: Event, tz: string): number {
-  const p = parseInput(ev.start, tz);
+  // Recurring masters sort by their first occurrence in the queried range, not the series start.
+  const p = parseInput(ev.nextOccurrences?.[0] ?? ev.start, tz);
   return p.kind === "date" ? zonedToUtc({ year: p.year, month: p.month, day: p.day, hour: 0, minute: 0, second: 0 }, tz).getTime() : p.date.getTime();
 }
 

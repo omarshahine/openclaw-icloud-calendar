@@ -90,6 +90,9 @@ openclaw plugins install openclaw-icloud-calendar
   was requested with what iCloud stored, so date parsing drift is visible to the agent.
 - **Discovery.** Principal and calendar-home discovery follow iCloud's redirects to the per-account
   `pNN-caldav.icloud.com` host and are cached; a 404 on a cached URL triggers rediscovery.
+- **UID lookup.** iCloud answers `calendar-query` UID prop-filters with a bare 412, so lookups try
+  `GET <calendar>/<uid>.ics` first (how Apple clients and this plugin name objects) and fall back to
+  scanning the calendar. Pass `calendar` to update/get/delete when you know it; it avoids the scan.
 - **Untrusted content.** Titles, notes, locations and URLs are wrapped in per-session
   `[UNTRUSTED_CALENDAR_DATA_…]` markers and instruction-like text is flagged, so the agent does not
   treat invitation text as commands.

@@ -125,8 +125,10 @@ describe("handlers against fake iCloud", () => {
     expect(res.event.start).toBe("2026-09-01");
     expect(res.event.end).toBe("2026-09-03");
     expect(res.event.recurrence).toEqual({ frequency: "YEARLY" });
+    fake.seed("/1234/calendars/work/", "early.ics", SEED("UID-EARLY", "Early Aug 2027", "20270815T160000Z", "20270815T170000Z"));
     const listed = await handleEvents(ctx, { from: "2027-08-01", to: "2027-09-30", calendar: "work" });
-    expect(listed.events.map((e) => e.title)).toContain("Offsite");
+    // Recurring master (series start 2026-09-01) sorts by its 2027 occurrence, after the Aug 15 event.
+    expect(listed.events.map((e) => e.title)).toEqual(["Early Aug 2027", "Offsite"]);
     const off = listed.events.find((e) => e.title === "Offsite")!;
     expect(off.nextOccurrences).toEqual(["2027-09-01"]);
   });

@@ -3,6 +3,7 @@
  */
 
 import type { CalDavClient } from "./client.js";
+import { CalDavError } from "../errors.js";
 import type { CalendarInfo } from "./discovery.js";
 import { NS, calendarQueryBody, childOf, okProp, textOf } from "./xml.js";
 
@@ -41,11 +42,23 @@ export async function queryEventsInRange(
   return collectObjects(client, calendar, responses);
 }
 
+/**
+ * Find an event by UID. iCloud rejects calendar-query prop-filter on UID
+ * with a bare 412, so: (1) try GET <calendar>/<uid>.ics, which is how Apple
+ * clients (and this plugin) name objects; (2) fall back to an unfiltered
+ * VEVENT REPORT and scan for the UID.
+ */
 export async function queryByUid(client: CalDavClient, calendar: CalendarInfo, uid: string): Promise<CalendarObject | undefined> {
-  const responses = await client.report(calendar.href, calendarQueryBody({ uid }), "1");
+  const direct = `${calendar.href}${encodeURIComponent(uid)}.ics`;
+  try {
+    const { text, etag } = await client.get(direct);
+    if (extractUid(text) === uid) return { href: direct, etag, ics: text, calendar };
+  } catch (e) {
+    if (!(e instanceof CalDavError && e.code === "not_found")) throw e;
+  }
+  const responses = await client.report(calendar.href, calendarQueryBody({}), "1");
   const objs = collectObjects(client, calendar, responses);
-  // Servers may text-match substrings; require exact UID.
-  return objs.find((o) => extractUid(o.ics) === uid) ?? objs[0];
+  return objs.find((o) => extractUid(o.ics) === uid);
 }
 
 export async function getObject(client: CalDavClient, calendar: CalendarInfo, href: string): Promise<CalendarObject> {

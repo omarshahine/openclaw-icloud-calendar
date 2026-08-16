@@ -40,8 +40,7 @@ END:VCALENDAR]]></C:calendar-data><D:resourcetype><D:collection/><C:calendar/></
 
   it("builds bodies with escaping", () => {
     expect(propfindBody([{ ns: NS.DAV, local: "displayname" }])).toContain("<D:displayname/>");
-    const q = calendarQueryBody({ uid: 'a<b>&"c' });
-    expect(q).toContain('a&lt;b&gt;&amp;&quot;c');
+    expect(calendarQueryBody({})).not.toContain("time-range");
     const r = calendarQueryBody({ start: new Date("2026-08-16T00:00:00Z"), end: new Date("2026-08-23T00:00:00Z") });
     expect(r).toContain('start="20260816T000000Z" end="20260823T000000Z"');
   });

@@ -167,7 +167,6 @@ export class Session {
       throw new CalDavError(
         "not_found",
         `Calendar "${idOrName}" not found. Available: ${cals.map((c) => `${c.name} (${c.id})`).join(", ") || "none"}`,
-        404,
       );
     }
     return found;

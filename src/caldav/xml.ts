@@ -262,11 +262,14 @@ export function toICalUtc(d: Date): string {
   return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
 
-export function calendarQueryBody(opts: { start?: Date; end?: Date; uid?: string }): string {
+/**
+ * calendar-query for VEVENTs. With start/end, adds a time-range filter;
+ * without, matches every VEVENT in the collection. (No prop-filter: iCloud
+ * answers UID prop-filters with a bare 412.)
+ */
+export function calendarQueryBody(opts: { start?: Date; end?: Date }): string {
   let filter = "";
-  if (opts.uid !== undefined) {
-    filter = `<C:prop-filter name="UID"><C:text-match collation="i;octet">${escapeXml(opts.uid)}</C:text-match></C:prop-filter>`;
-  } else if (opts.start && opts.end) {
+  if (opts.start && opts.end) {
     filter = `<C:time-range start="${toICalUtc(opts.start)}" end="${toICalUtc(opts.end)}"/>`;
   }
   return (
