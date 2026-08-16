@@ -23,8 +23,10 @@ Set `readOnly: true` and the three write tools are not registered at all.
 ## Install
 
 ```bash
-openclaw plugins install openclaw-icloud-calendar
+openclaw plugins install clawhub:openclaw-icloud-calendar
 ```
+
+(The bare name resolves to npm; use the `clawhub:` prefix until the npm package is published.)
 
 ## Setup
 

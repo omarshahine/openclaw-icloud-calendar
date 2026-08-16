@@ -57,4 +57,8 @@ git push origin v0.2.0
 
 Manual fallback: `./publish-clawhub.sh --changelog "..."` (needs `clawhub login`), `npm publish --access public`.
 
-Verify: `clawhub package inspect openclaw-icloud-calendar`, `openclaw plugins install openclaw-icloud-calendar`.
+Verify: `clawhub package inspect openclaw-icloud-calendar`, `openclaw plugins install clawhub:openclaw-icloud-calendar` then `openclaw plugins inspect openclaw-icloud-calendar --runtime`.
+
+State: v0.1.0 published to ClawHub 2026-08-16 (manual first publish, community channel). npm not yet published; `publish-npm.yml` will fail on tags until the first manual `npm publish` + trusted publisher setup. Do NOT tag v0.1.0 (ClawHub versions are immutable; the tag workflow would try to republish).
+
+Note for this Mac only: the global npm registry is a Microsoft feed proxy that 404s on `openclaw`; run installer smoke tests with `NPM_CONFIG_REGISTRY=https://registry.npmjs.org/` or from inside this repo (its `.npmrc` pins the public registry).
