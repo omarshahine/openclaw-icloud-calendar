@@ -7,6 +7,10 @@ description: |
   - User wants to add, create, schedule, move, reschedule, edit, or cancel/delete an event or meeting
   - User mentions iCloud Calendar, Apple Calendar, or a named calendar (Home, Work, Family, ...)
   - User asks about a specific event's details, location, notes, or reminders/alerts
+metadata:
+  openclaw:
+    emoji: calendar
+    homepage: https://github.com/omarshahine/openclaw-icloud-calendar
 ---
 
 # iCloud Calendar

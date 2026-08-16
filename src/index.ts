@@ -44,6 +44,7 @@ const pluginEntry: OpenClawPluginDefinition = definePluginEntry({
 
   register(api) {
     const raw = api.pluginConfig as RawPluginConfig | undefined;
+    const log = api.logger;
 
     // Resolve config lazily on first use so a misconfigured plugin still
     // loads and reports a clear error from the tool instead of failing the
@@ -61,11 +62,13 @@ const pluginEntry: OpenClawPluginDefinition = definePluginEntry({
         config = resolveConfig(raw);
       } catch (e) {
         configError = e instanceof Error ? e.message : String(e);
+        log?.warn?.(`icloud-calendar: not configured: ${configError}`);
         throw e;
       }
       readOnlyFromConfig = config.readOnly;
       const client = new CalDavClient({ serverUrl: config.serverUrl, username: config.appleId, password: config.appPassword });
       ctx = { session: new Session(client), config };
+      log?.info?.(`icloud-calendar: connected as ${config.appleId} (${config.timezone}${config.readOnly ? ", read-only" : ""})`);
       return ctx;
     }
 
@@ -118,7 +121,8 @@ const pluginEntry: OpenClawPluginDefinition = definePluginEntry({
       },
     });
 
-    if (!readOnlyFromConfig) {
+    if (readOnlyFromConfig) log?.info?.("icloud-calendar: readOnly=true, write tools not registered");
+    else {
       api.registerTool({
         name: "icloud_calendar_create",
         label: "iCloud Calendar Create",

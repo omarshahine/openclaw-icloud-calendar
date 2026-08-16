@@ -1,8 +1,11 @@
 {
   "id": "openclaw-icloud-calendar",
   "name": "iCloud Calendar",
+  "version": "0.1.0",
   "description": "Read and write Apple iCloud Calendar over CalDAV using an Apple ID and app-specific password. Server-to-server; no macOS required.",
-  "skills": ["skills/icloud-calendar"],
+  "skills": [
+    "skills/icloud-calendar"
+  ],
   "configSchema": {
     "type": "object",
     "properties": {
@@ -20,11 +23,25 @@
             "type": "object",
             "description": "SecretRef for the app-specific password",
             "properties": {
-              "source": { "type": "string", "enum": ["env", "file"] },
-              "provider": { "type": "string" },
-              "id": { "type": "string" }
+              "source": {
+                "type": "string",
+                "enum": [
+                  "env",
+                  "file"
+                ]
+              },
+              "provider": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              }
             },
-            "required": ["source", "provider", "id"]
+            "required": [
+              "source",
+              "provider",
+              "id"
+            ]
           }
         ],
         "description": "App-specific password from appleid.apple.com: plain string, ${ENV_VAR}, or SecretRef object"
@@ -35,19 +52,27 @@
       },
       "serverUrl": {
         "type": "string",
-        "description": "CalDAV server URL (default https://caldav.icloud.com). Must be https."
+        "description": "CalDAV server URL (default https://caldav.icloud.com). Must be https.",
+        "default": "https://caldav.icloud.com"
       },
       "calendars": {
         "type": "array",
-        "items": { "type": "string" },
-        "description": "Optional allowlist of calendar ids or names the agent may see and modify. Empty = all."
+        "items": {
+          "type": "string"
+        },
+        "description": "Optional allowlist of calendar ids or names the agent may see and modify. Empty = all.",
+        "default": []
       },
       "readOnly": {
         "type": "boolean",
-        "description": "When true, only list/events/get tools are registered; no writes."
+        "description": "When true, only list/events/get tools are registered; no writes.",
+        "default": false
       }
     },
-    "required": ["appleId", "appPassword"],
+    "required": [
+      "appleId",
+      "appPassword"
+    ],
     "additionalProperties": false
   },
   "uiHints": {
@@ -59,22 +84,25 @@
     "appPassword": {
       "label": "App-Specific Password",
       "sensitive": true,
-      "help": "Generate at appleid.apple.com → Sign-In and Security → App-Specific Passwords (two-factor authentication required). Accepts a string, ${ENV_VAR}, or a SecretRef object. Never use your Apple Account password."
+      "help": "Generate at appleid.apple.com \u2192 Sign-In and Security \u2192 App-Specific Passwords (two-factor authentication required). Accepts a string, ${ENV_VAR}, or a SecretRef object. Never use your Apple Account password."
     },
     "timezone": {
       "label": "Time Zone",
       "placeholder": "America/Los_Angeles",
-      "advanced": true
+      "advanced": true,
+      "help": "IANA zone like America/Los_Angeles. Naive times from the agent are interpreted here and results are formatted in it. Defaults to the gateway host zone."
     },
     "serverUrl": {
       "label": "CalDAV Server URL",
       "placeholder": "https://caldav.icloud.com",
-      "advanced": true
+      "advanced": true,
+      "help": "Only change for a non-iCloud CalDAV server. Must be https."
     },
     "calendars": {
       "label": "Calendar Allowlist",
       "help": "Restrict the agent to these calendar ids or names.",
-      "advanced": true
+      "advanced": true,
+      "placeholder": "[\"Home\", \"Work\"]"
     },
     "readOnly": {
       "label": "Read Only",
