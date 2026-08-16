@@ -7,3 +7,4 @@ reports/
 .clawpatch/
 WORKLOG.md
 .env
+*.tgz

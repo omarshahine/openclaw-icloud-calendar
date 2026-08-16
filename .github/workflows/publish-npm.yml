@@ -1,0 +1,50 @@
+name: Publish to NPM
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish openclaw-icloud-calendar to NPM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Print npm version
+        # Bundled npm in node 22 (10.9+) supports `--provenance` natively.
+        # Avoid `npm install -g npm@latest`: the bundled npm's self-upgrade path
+        # is broken on current runner images with `Cannot find module 'promise-retry'`.
+        run: npm --version
+
+      - name: Assert tag matches package version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag $TAG_VERSION does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Install + build (compile TS so publish has dist/)
+        run: |
+          npm install
+          npm run build
+
+      - name: Publish to NPM (OIDC trusted publishing)
+        run: npm publish --provenance --access public
+
+      - name: Verify
+        run: npm view openclaw-icloud-calendar version

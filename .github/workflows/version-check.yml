@@ -1,0 +1,21 @@
+name: Version Consistency
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  version-check:
+    name: Version Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: omarshahine/version-consistency-action@v1
+        with:
+          sets: |
+            - name: "iCloud Calendar plugin"
+              sources:
+                - package.json:.version
+                - marketplace.json:.plugins[0].version
+                - openclaw.plugin.json:.version

@@ -6,6 +6,9 @@
   "skills": [
     "skills/icloud-calendar"
   ],
+  "activation": {
+    "onStartup": true
+  },
   "configSchema": {
     "type": "object",
     "properties": {
@@ -69,10 +72,6 @@
         "default": false
       }
     },
-    "required": [
-      "appleId",
-      "appPassword"
-    ],
     "additionalProperties": false
   },
   "uiHints": {

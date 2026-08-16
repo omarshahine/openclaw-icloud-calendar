@@ -1,0 +1,70 @@
+name: Publish to ClawHub
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to ClawHub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install clawhub CLI
+        run: npm install -g clawhub
+
+      - name: Authenticate
+        run: clawhub login --token "${{ secrets.CLAWHUB_TOKEN }}" --no-browser
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract changelog from tag annotation
+        id: changelog
+        run: |
+          MSG=$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME" 2>/dev/null || true)
+          if [ -z "$MSG" ] || [ "$MSG" = "$GITHUB_REF_NAME" ]; then
+            MSG=$(git log -1 --format='%s')
+          fi
+          echo "text=$MSG" >> "$GITHUB_OUTPUT"
+
+      - name: Install + build (compile TS so clawhub validator finds dist/)
+        run: |
+          npm install
+          npm run build
+
+      - name: Sync manifest version to tag (tag is source of truth)
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          for f in package.json openclaw.plugin.json .claude-plugin/plugin.json; do
+            [ -f "$f" ] || continue
+            node -e "const fs=require('fs'),p='$f',j=JSON.parse(fs.readFileSync(p));if('version' in j){j.version='$V';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');console.log('synced '+p+' -> $V')}"
+          done
+
+      - name: Publish to ClawHub
+        run: |
+          clawhub package publish . \
+            --family code-plugin \
+            --name openclaw-icloud-calendar \
+            --display-name "iCloud Calendar" \
+            --version "${{ steps.version.outputs.version }}" \
+            --changelog "${{ steps.changelog.outputs.text }}" \
+            --tags "latest" \
+            --source-repo "${{ github.repository }}" \
+            --source-commit "${{ github.sha }}" \
+            --source-ref "${{ github.ref_name }}"
+
+      - name: Verify
+        run: clawhub package inspect openclaw-icloud-calendar

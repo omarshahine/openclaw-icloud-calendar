@@ -122,7 +122,11 @@ export class Session {
   private calendars?: CalendarInfo[];
   private inflight?: Promise<CalendarInfo[]>;
 
-  constructor(readonly client: CalDavClient) {}
+  readonly client: CalDavClient;
+
+  constructor(client: CalDavClient) {
+    this.client = client;
+  }
 
   invalidate(): void {
     this.homeUrl = undefined;
