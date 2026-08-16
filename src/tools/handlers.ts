@@ -11,6 +11,34 @@ import { buildNewEvent, componentToEvent, parseEventDocument, patchEvent, resolv
 import type { Recurrence } from "../ical/rrule.js";
 import { formatDateOnly, formatIsoInZone, parseInput, zonedToUtc } from "../ical/tz.js";
 
+/** Drop null-valued keys (models often send null for unused optional fields). */
+function stripNulls<T extends object>(o: T): T {
+  return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null)) as T;
+}
+
+type Nullable<T> = { [K in keyof T]: T[K] | null };
+
+/** Wire shape of writable event fields: every optional field may be null. */
+export type WireEventInput = Partial<Nullable<Omit<EventInput, "recurrence">>> & { recurrence?: Partial<Nullable<Recurrence>> | null };
+
+/**
+ * Normalise wire input into EventInput. For clearable fields (location, notes,
+ * url, alarms, recurrence) null survives as "clear" when `keepClears` is set
+ * (update); otherwise null means "not provided".
+ */
+function normaliseInput(raw: WireEventInput, keepClears: boolean): EventInput {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (v === undefined) continue;
+    if (v === null) {
+      if (keepClears && ["location", "notes", "url", "alarms", "recurrence"].includes(k)) out[k] = null;
+      continue;
+    }
+    out[k] = k === "recurrence" ? stripNulls(v as object) : v;
+  }
+  return out as EventInput;
+}
+
 export interface Context {
   session: Session;
   config: ResolvedConfig;
@@ -79,13 +107,14 @@ export async function handleList(ctx: Context): Promise<{ calendars: CalendarSum
 }
 
 export interface EventsParams {
-  from?: string;
-  to?: string;
-  calendar?: string;
-  limit?: number;
+  from?: string | null;
+  to?: string | null;
+  calendar?: string | null;
+  limit?: number | null;
 }
 
-export async function handleEvents(ctx: Context, params: EventsParams) {
+export async function handleEvents(ctx: Context, rawParams: EventsParams) {
+  const params = stripNulls(rawParams);
   const tz = ctx.config.timezone;
   const start = params.from ? toInstant(parseInput(params.from, tz, "from"), tz, false) : new Date();
   const end = params.to ? toInstant(parseInput(params.to, tz, "to"), tz, true) : new Date(start.getTime() + 7 * 86_400_000);
@@ -157,14 +186,14 @@ async function locate(ctx: Context, uid: string, calendar?: string): Promise<Cal
   });
 }
 
-export async function handleGet(ctx: Context, params: { uid: string; calendar?: string }): Promise<Event> {
-  const obj = await locate(ctx, params.uid, params.calendar);
+export async function handleGet(ctx: Context, params: { uid: string; calendar?: string | null }): Promise<Event> {
+  const obj = await locate(ctx, params.uid, params.calendar ?? undefined);
   return toEvent(ctx, obj);
 }
 
 // ---------------------------------------------------------------------------
 
-export interface CreateParams extends EventInput {
+export interface CreateParams extends WireEventInput {
   title: string;
   start: string;
   calendar: string;
@@ -200,8 +229,10 @@ function inclusive(exclusiveEnd: { year: number; month: number; day: number }): 
   return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()];
 }
 
-export async function handleCreate(ctx: Context, params: CreateParams): Promise<{ event: Event; verification: Verification }> {
-  const cal = await resolveAllowedCalendar(ctx, params.calendar);
+export async function handleCreate(ctx: Context, rawParams: CreateParams): Promise<{ event: Event; verification: Verification }> {
+  const { calendar, ...rest } = rawParams;
+  const params = normaliseInput(rest, false);
+  const cal = await resolveAllowedCalendar(ctx, calendar);
   assertWritable(ctx, cal);
   const uid = randomUUID().toUpperCase();
   const { ics } = buildNewEvent(params, ctx.config.timezone, uid);
@@ -212,15 +243,15 @@ export async function handleCreate(ctx: Context, params: CreateParams): Promise<
   return { event, verification: verify(ctx, params, undefined, event) };
 }
 
-export interface UpdateParams extends EventInput {
+export interface UpdateParams extends WireEventInput {
   uid: string;
-  calendar?: string;
-  clearRecurrence?: boolean;
+  calendar?: string | null;
+  clearRecurrence?: boolean | null;
 }
 
 export async function handleUpdate(ctx: Context, params: UpdateParams): Promise<{ event: Event; verification?: Verification }> {
   const { uid, calendar, clearRecurrence, ...rest } = params;
-  const input: EventInput = { ...rest };
+  const input: EventInput = normaliseInput(rest, true);
   if (clearRecurrence) input.recurrence = null;
   const timeFieldsTouched = input.start !== undefined || input.end !== undefined || input.duration !== undefined || input.allDay !== undefined;
   const hasChange = Object.values(input).some((v) => v !== undefined);
@@ -238,7 +269,7 @@ export async function handleUpdate(ctx: Context, params: UpdateParams): Promise<
     return obj;
   };
 
-  let obj = await locate(ctx, uid, calendar);
+  let obj = await locate(ctx, uid, calendar ?? undefined);
   const before = toEvent(ctx, obj);
   try {
     await attempt(obj);
@@ -253,8 +284,8 @@ export async function handleUpdate(ctx: Context, params: UpdateParams): Promise<
   return { event, ...(timeFieldsTouched ? { verification: verify(ctx, input, before, event) } : {}) };
 }
 
-export async function handleDelete(ctx: Context, params: { uid: string; calendar?: string }): Promise<{ deleted: true; uid: string; calendar: string; title: string }> {
-  const obj = await locate(ctx, params.uid, params.calendar);
+export async function handleDelete(ctx: Context, params: { uid: string; calendar?: string | null }): Promise<{ deleted: true; uid: string; calendar: string; title: string }> {
+  const obj = await locate(ctx, params.uid, params.calendar ?? undefined);
   assertWritable(ctx, obj.calendar);
   const ev = toEvent(ctx, obj);
   try {

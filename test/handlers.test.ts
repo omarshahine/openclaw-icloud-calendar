@@ -133,6 +133,19 @@ describe("handlers against fake iCloud", () => {
     expect(off.nextOccurrences).toEqual(["2027-09-01"]);
   });
 
+  it("tolerates null for unused optional params (model habit)", async () => {
+    const created = await handleCreate(ctx, { title: "Nullish", start: "2026-08-21T09:00", calendar: "Home", end: null, duration: null, location: null, notes: null, url: null, alarms: null, recurrence: null, allDay: null });
+    expect(created.event.end).toBe("2026-08-21T10:00:00-07:00");
+    expect(created.event.recurrence).toBeUndefined();
+    const listed = await handleEvents(ctx, { from: "2026-08-21", to: null, calendar: null, limit: null });
+    expect(listed.events.map((e) => e.title)).toContain("Nullish");
+    const upd = await handleUpdate(ctx, { uid: created.event.uid, calendar: null, title: null, location: "Room", notes: null, recurrence: { frequency: "DAILY", count: 2, interval: null, until: null, byDay: null, byMonthDay: null } });
+    expect(upd.event.title).toBe("Nullish");
+    expect(upd.event.location).toBe("Room");
+    expect(upd.event.recurrence).toEqual({ frequency: "DAILY", count: 2 });
+    await handleDelete(ctx, { uid: created.event.uid, calendar: null });
+  });
+
   it("refuses writes to read-only calendars and in readOnly mode", async () => {
     await expect(handleCreate(ctx, { title: "x", start: "2026-08-20", calendar: "Birthdays" })).rejects.toMatchObject({ code: "read_only_calendar" });
     const ro = makeCtx(fake, { readOnly: true });
