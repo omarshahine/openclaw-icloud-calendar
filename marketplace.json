@@ -1,0 +1,12 @@
+{
+  "name": "openclaw-icloud-calendar",
+  "owner": { "name": "Omar Shahine" },
+  "plugins": [
+    {
+      "name": "openclaw-icloud-calendar",
+      "source": ".",
+      "description": "Read and write Apple iCloud Calendar over CalDAV (Apple ID + app-specific password)",
+      "version": "0.1.0"
+    }
+  ]
+}

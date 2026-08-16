@@ -1,0 +1,94 @@
+{
+  "id": "openclaw-icloud-calendar",
+  "name": "iCloud Calendar",
+  "description": "Read and write Apple iCloud Calendar over CalDAV using an Apple ID and app-specific password. Server-to-server; no macOS required.",
+  "skills": ["skills/icloud-calendar"],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "appleId": {
+        "type": "string",
+        "description": "Apple Account email address (plain string or ${ENV_VAR})"
+      },
+      "appPassword": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "App-specific password (plaintext or env interpolation via ${VAR})"
+          },
+          {
+            "type": "object",
+            "description": "SecretRef for the app-specific password",
+            "properties": {
+              "source": { "type": "string", "enum": ["env", "file"] },
+              "provider": { "type": "string" },
+              "id": { "type": "string" }
+            },
+            "required": ["source", "provider", "id"]
+          }
+        ],
+        "description": "App-specific password from appleid.apple.com: plain string, ${ENV_VAR}, or SecretRef object"
+      },
+      "timezone": {
+        "type": "string",
+        "description": "IANA time zone used to interpret naive times and format results (default: host time zone)"
+      },
+      "serverUrl": {
+        "type": "string",
+        "description": "CalDAV server URL (default https://caldav.icloud.com). Must be https."
+      },
+      "calendars": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Optional allowlist of calendar ids or names the agent may see and modify. Empty = all."
+      },
+      "readOnly": {
+        "type": "boolean",
+        "description": "When true, only list/events/get tools are registered; no writes."
+      }
+    },
+    "required": ["appleId", "appPassword"],
+    "additionalProperties": false
+  },
+  "uiHints": {
+    "appleId": {
+      "label": "Apple ID",
+      "placeholder": "you@icloud.com",
+      "help": "The Apple Account email that owns the calendars."
+    },
+    "appPassword": {
+      "label": "App-Specific Password",
+      "sensitive": true,
+      "help": "Generate at appleid.apple.com → Sign-In and Security → App-Specific Passwords (two-factor authentication required). Accepts a string, ${ENV_VAR}, or a SecretRef object. Never use your Apple Account password."
+    },
+    "timezone": {
+      "label": "Time Zone",
+      "placeholder": "America/Los_Angeles",
+      "advanced": true
+    },
+    "serverUrl": {
+      "label": "CalDAV Server URL",
+      "placeholder": "https://caldav.icloud.com",
+      "advanced": true
+    },
+    "calendars": {
+      "label": "Calendar Allowlist",
+      "help": "Restrict the agent to these calendar ids or names.",
+      "advanced": true
+    },
+    "readOnly": {
+      "label": "Read Only",
+      "help": "Disable create/update/delete tools entirely."
+    }
+  },
+  "contracts": {
+    "tools": [
+      "icloud_calendar_list",
+      "icloud_calendar_events",
+      "icloud_calendar_get",
+      "icloud_calendar_create",
+      "icloud_calendar_update",
+      "icloud_calendar_delete"
+    ]
+  }
+}
