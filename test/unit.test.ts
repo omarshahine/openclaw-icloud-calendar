@@ -377,3 +377,27 @@ describe("config", () => {
     expect(jsonPointer({ a: { "b/c": [1, { d: "x" }] } }, "/a/b~1c/1/d")).toBe("x");
   });
 });
+
+describe("credential trust boundary", () => {
+  it("only sends credentials to the server's domain and refuses foreign redirects", async () => {
+    const { CalDavClient, baseDomain } = await import("../src/caldav/client.js");
+    expect(baseDomain("p117-caldav.icloud.com")).toBe("icloud.com");
+    expect(baseDomain("caldav.icloud.com.cn")).toBe("icloud.com.cn");
+    const seen: string[] = [];
+    const client = new CalDavClient({
+      serverUrl: "https://caldav.icloud.com",
+      username: "u",
+      password: "p",
+      fetch: async (url) => {
+        seen.push(url);
+        if (url.startsWith("https://caldav.icloud.com/")) return new Response(null, { status: 302, headers: { Location: "https://evil.example.net/steal" } });
+        return new Response("ok", { status: 200 });
+      },
+    });
+    expect(client.isTrustedUrl("https://p99-caldav.icloud.com/x")).toBe(true);
+    expect(client.isTrustedUrl("https://icloud.com.evil.example/x")).toBe(false);
+    await expect(client.request("GET", "https://caldav.icloud.com/")).rejects.toThrow(/untrusted host evil.example.net/);
+    await expect(client.request("GET", "https://evil.example.net/")).rejects.toThrow(/untrusted host/);
+    expect(seen.some((u) => u.includes("evil.example.net"))).toBe(false);
+  });
+});

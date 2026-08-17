@@ -1,6 +1,6 @@
 {
   "name": "openclaw-icloud-calendar",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OpenClaw plugin: read and write Apple iCloud Calendar server-to-server over CalDAV with an Apple ID and app-specific password. Zero runtime dependencies, runs anywhere Node runs.",
   "type": "module",
   "main": "./dist/index.js",

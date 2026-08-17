@@ -34,8 +34,22 @@ export interface DavResponse {
 
 const MAX_REDIRECTS = 5;
 
+/**
+ * Registrable-domain heuristic: the last two labels, or three for
+ * two-part public suffixes such as .com.cn / .co.uk.
+ */
+export function baseDomain(hostname: string): string {
+  const parts = hostname.toLowerCase().split(".");
+  if (parts.length <= 2) return parts.join(".");
+  const tld2 = parts.slice(-2).join(".");
+  if (/^(com|co|org|net|gov|edu|ac)\.[a-z]{2}$/.test(tld2)) return parts.slice(-3).join(".");
+  return tld2;
+}
+
 export class CalDavClient {
   readonly serverUrl: string;
+  /** Credentials are only ever sent to hosts within this registrable domain (from serverUrl). */
+  readonly trustedDomain: string;
   private readonly authHeader: string;
   private readonly fetchImpl: FetchLike;
   private readonly timeoutMs: number;
@@ -47,10 +61,23 @@ export class CalDavClient {
       throw new CalDavError("invalid_input", "serverUrl must use https (credentials are sent with HTTP Basic auth)");
     }
     this.serverUrl = url.toString();
+    this.trustedDomain = baseDomain(url.hostname);
     this.authHeader = "Basic " + Buffer.from(`${opts.username}:${opts.password}`, "utf8").toString("base64");
     this.fetchImpl = opts.fetch ?? ((input, init) => fetch(input, init));
     this.timeoutMs = opts.timeoutMs ?? 30_000;
     this.userAgent = opts.userAgent ?? "openclaw-icloud-calendar/0.1";
+  }
+
+  /** True if credentials may be sent to this URL (same registrable domain as serverUrl, https). */
+  isTrustedUrl(url: string): boolean {
+    try {
+      const u = new URL(url);
+      if (u.protocol !== "https:" && !(u.hostname === "localhost" || u.hostname === "127.0.0.1")) return false;
+      const host = u.hostname.toLowerCase();
+      return host === this.trustedDomain || host.endsWith("." + this.trustedDomain);
+    } catch {
+      return false;
+    }
   }
 
   /** Resolve a possibly-relative href against the server or a base URL. */
@@ -66,6 +93,9 @@ export class CalDavClient {
     let current = url;
     let attempt = 0;
     let redirects = 0;
+    if (!this.isTrustedUrl(current)) {
+      throw new CalDavError("server_error", `Refusing to send credentials to untrusted host ${safeHost(current)} (trusted: *.${this.trustedDomain})`);
+    }
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const headers: Record<string, string> = {
@@ -106,7 +136,11 @@ export class CalDavClient {
           throw new CalDavError("server_error", `Too many redirects or missing Location (status ${res.status})`, res.status);
         }
         redirects++;
-        current = new URL(loc, current).toString();
+        const next = new URL(loc, current).toString();
+        if (!this.isTrustedUrl(next)) {
+          throw new CalDavError("server_error", `Refusing to follow redirect to untrusted host ${safeHost(next)} (trusted: *.${this.trustedDomain})`);
+        }
+        current = next;
         continue;
       }
 
@@ -186,6 +220,14 @@ function sleep(ms: number): Promise<void> {
 function describe(e: unknown): string {
   if (e instanceof Error) return e.name === "AbortError" ? "timeout" : e.message;
   return String(e);
+}
+
+function safeHost(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "<invalid-url>";
+  }
 }
 
 /** Path only, so error messages never include a userinfo component. */

@@ -33,11 +33,8 @@ openclaw plugins install clawhub:openclaw-icloud-calendar
 1. Turn on two-factor authentication for your Apple Account if it is not already on.
 2. Create an app-specific password at <https://account.apple.com> → Sign-In and Security →
    App-Specific Passwords. Name it "OpenClaw". Copy the `xxxx-xxxx-xxxx-xxxx` value.
-3. Put the password somewhere the gateway can read it. Environment variable is simplest:
-
-   ```bash
-   export ICLOUD_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"
-   ```
+3. Make it available to the gateway as an environment variable named `ICLOUD_APP_PASSWORD` (or store
+   it in `~/.openclaw/secrets.json` and reference it with a SecretRef, see below).
 
 4. Configure the plugin in `openclaw.json`:
 
@@ -92,6 +89,8 @@ openclaw plugins install clawhub:openclaw-icloud-calendar
   was requested with what iCloud stored, so date parsing drift is visible to the agent.
 - **Discovery.** Principal and calendar-home discovery follow iCloud's redirects to the per-account
   `pNN-caldav.icloud.com` host and are cached; a 404 on a cached URL triggers rediscovery.
+- **Credential hygiene.** Credentials are sent only to hosts within the configured server's domain
+  (`*.icloud.com` by default); redirects to any other host are refused.
 - **UID lookup.** iCloud answers `calendar-query` UID prop-filters with a bare 412, so lookups try
   `GET <calendar>/<uid>.ics` first (how Apple clients and this plugin name objects) and fall back to
   scanning the calendar. Pass `calendar` to update/get/delete when you know it; it avoids the scan.
@@ -123,7 +122,7 @@ npm run plugin:check    # @openclaw/plugin-inspector
 Live test against a real account (creates and deletes one `[openclaw-test]` event):
 
 ```bash
-ICLOUD_INTEGRATION=1 ICLOUD_TEST_APPLE_ID=you@icloud.com ICLOUD_TEST_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx \
+ICLOUD_INTEGRATION=1 ICLOUD_TEST_APPLE_ID=you@icloud.com ICLOUD_TEST_APP_PASSWORD=<app-specific password> \
 ICLOUD_TEST_CALENDAR=Home npm run test:integration
 ```
 
