@@ -1,6 +1,6 @@
 # openclaw-icloud-calendar
 
-OpenClaw plugin: Apple iCloud Calendar over CalDAV (Apple ID + app-specific password), server-to-server, zero runtime deps for the CalDAV path. Published to ClawHub and npm as `openclaw-icloud-calendar`.
+OpenClaw plugin: Apple iCloud Calendar over CalDAV (Apple ID + app-specific password), server-to-server, zero runtime deps for the CalDAV path. Published to ClawHub only as `openclaw-icloud-calendar` (not on npm, by decision).
 
 ## Project Structure
 
@@ -53,12 +53,12 @@ git tag -a v0.2.0 -m "what changed"
 git push origin v0.2.0
 ```
 
-`publish-clawhub.yml` publishes to ClawHub (needs `CLAWHUB_TOKEN` repo secret); `publish-npm.yml` publishes to npm via OIDC trusted publishing (configure the trusted publisher on npmjs.com for this repo/workflow after the first manual publish).
+`publish-clawhub.yml` publishes to ClawHub on `v*` tags (needs `CLAWHUB_TOKEN` repo secret). There is no npm channel.
 
-Manual fallback: `./publish-clawhub.sh --changelog "..."` (needs `clawhub login`), `npm publish --access public`.
+Manual fallback: `./publish-clawhub.sh --changelog "..."` (needs `clawhub login`).
 
 Verify: `clawhub package inspect openclaw-icloud-calendar`, `openclaw plugins install clawhub:openclaw-icloud-calendar` then `openclaw plugins inspect openclaw-icloud-calendar --runtime`.
 
-State: v0.1.0 published to ClawHub 2026-08-16 (manual first publish, community channel). npm not yet published; `publish-npm.yml` will fail on tags until the first manual `npm publish` + trusted publisher setup. Do NOT tag v0.1.0 (ClawHub versions are immutable; the tag workflow would try to republish).
+State: v0.1.0 and v0.1.1 published to ClawHub manually (untagged, community channel); v0.1.2 is the first tag-driven release. Do NOT tag v0.1.0 or v0.1.1 (ClawHub versions are immutable; the tag workflow would try to republish). ClawHub-only by decision (2026-10-18); do not add an npm publish workflow.
 
 Note for this Mac only: the global npm registry is a Microsoft feed proxy that 404s on `openclaw`; run installer smoke tests with `NPM_CONFIG_REGISTRY=https://registry.npmjs.org/` or from inside this repo (its `.npmrc` pins the public registry).

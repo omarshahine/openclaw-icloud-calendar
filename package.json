@@ -16,14 +16,13 @@
       "minGatewayVersion": "2026.6.5"
     },
     "install": {
-      "npmSpec": "openclaw-icloud-calendar",
       "clawhubSpec": "clawhub:openclaw-icloud-calendar",
       "defaultChoice": "clawhub",
       "minHostVersion": ">=2026.6.5"
     },
     "release": {
       "publishToClawHub": true,
-      "publishToNpm": true
+      "publishToNpm": false
     },
     "build": {
       "openclawVersion": "2026.6.5",
@@ -53,9 +52,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/omarshahine/openclaw-icloud-calendar.git"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "engines": {
     "node": ">=22.19.0"
